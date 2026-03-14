@@ -1,7 +1,5 @@
 package com.saiyan.dragonballuniverse
 
-import android.app.Activity
-import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +11,7 @@ import com.saiyan.dragonballuniverse.manga.ui.MangaChapterReaderScreen
 import com.saiyan.dragonballuniverse.manga.ui.MangaHomeScreen
 import com.saiyan.dragonballuniverse.quiz.QuizMainScreen
 import com.saiyan.dragonballuniverse.quiz.QuizViewModel
+import com.saiyan.dragonballuniverse.ui.video.VideoPlayerScreen
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -70,11 +69,8 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.Saver as ComposeSaver
@@ -100,12 +96,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import coil.Coil
 import coil.ImageLoader
 import coil.compose.AsyncImage
@@ -116,10 +107,6 @@ import com.saiyan.dragonballuniverse.ui.theme.DarkBackground
 import com.saiyan.dragonballuniverse.ui.theme.DragonBallUniverseTheme
 import com.saiyan.dragonballuniverse.ui.theme.GokuOrange
 import com.saiyan.dragonballuniverse.ui.theme.VegetaBlue
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -476,124 +463,6 @@ private fun MangaReaderScreen(
     }
 }
 
-@Composable
-private fun VideoPlayerScreen(
-    episodeId: String,
-    videoUrl: String,
-    onPlayNext: (String, String) -> Unit,
-    onBack: () -> Unit,
-    getSavedProgressMs: suspend (String) -> Long?,
-    saveWatchProgress: (String, Long) -> Unit
-) {
-    if (videoUrl.isBlank()) {
-        onBack()
-        return
-    }
-
-    val context = LocalContext.current
-    val activity = context as? Activity
-
-    DisposableEffect(activity) {
-        val job: Job? =
-            if (activity == null) {
-                null
-            } else {
-                kotlinx.coroutines.CoroutineScope(Dispatchers.Main.immediate).launch {
-                    delay(200)
-                    activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
-                }
-            }
-
-        onDispose {
-            job?.cancel()
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        }
-    }
-
-    // Smart Resume: load progress once per episode (no DB access inside UI)
-    val savedProgressMs by produceState<Long?>(initialValue = null, key1 = episodeId) {
-        value = getSavedProgressMs(episodeId)
-    }
-
-    val player = remember(videoUrl) {
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(videoUrl))
-            prepare()
-            playWhenReady = true
-        }
-    }
-
-    // Seek once we have saved progress
-    LaunchedEffect(savedProgressMs, player) {
-        val ms = savedProgressMs
-        if (ms != null && ms > 0L) {
-            player.seekTo(ms)
-        }
-    }
-
-    // Auto play next when ended
-    DisposableEffect(player, onPlayNext, videoUrl, episodeId) {
-        val listener =
-            object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_ENDED) {
-                        onPlayNext(episodeId, videoUrl)
-                    }
-                }
-            }
-
-        player.addListener(listener)
-        onDispose {
-            player.removeListener(listener)
-            player.release()
-        }
-    }
-
-    // Save watch progress silently each 5 seconds
-    DisposableEffect(player, episodeId) {
-        val job =
-            kotlinx.coroutines.CoroutineScope(Dispatchers.Main.immediate).launch {
-                while (true) {
-                    delay(5000)
-                    saveWatchProgress(episodeId, player.currentPosition)
-                }
-            }
-
-        onDispose {
-            job.cancel()
-            saveWatchProgress(episodeId, player.currentPosition)
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    this.player = player
-                    useController = true
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .padding(12.dp)
-                .align(Alignment.TopStart)
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "رجوع",
-                tint = Color.White
-            )
-        }
-    }
-}
 
 private val dragonBallManga = Manga(
     title = "دراغون بول",
@@ -780,7 +649,7 @@ private fun DragonBallHomeContent(
                 selectedEpisodeId = null
             },
             getSavedProgressMs = { id ->
-                viewModel.watchProgressMsFlow(id).value
+                viewModel.watchProgressMs(id)
             },
             saveWatchProgress = { id, progress ->
                 viewModel.saveWatchProgress(id, progress)
@@ -803,27 +672,37 @@ private fun DragonBallHomeContent(
     }
 
     val sampleUrl =
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-
-    val filteredEpisodesList =
-        if (searchQuery.isBlank()) {
-            episodes
-        } else {
-            val q = searchQuery.trim()
-            episodes.filter { it.title.contains(q, ignoreCase = true) }
+        remember {
+            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
         }
 
-    val dbzSeason =
-        AnimeSeason(
-            title = "دراغون بول زد",
-            year = "1989",
-            description = "وصول السايانز إلى الأرض ومعارك ملحمية لإنقاذ الكون.",
-            episodes = filteredEpisodesList,
-            imageUrl = DEFAULT_DBZ_COVER_URL,
-            status = "مكتمل"
-        )
+    val filteredEpisodesList by remember(searchQuery, episodes) {
+        androidx.compose.runtime.derivedStateOf {
+            if (searchQuery.isBlank()) {
+                episodes
+            } else {
+                val q = searchQuery.trim()
+                episodes.filter { it.title.contains(q, ignoreCase = true) }
+            }
+        }
+    }
 
-    val seasonsToShow = listOf(dbzSeason)
+    val dbzSeason by remember(filteredEpisodesList) {
+        androidx.compose.runtime.derivedStateOf {
+            AnimeSeason(
+                title = "دراغون بول زد",
+                year = "1989",
+                description = "وصول السايانز إلى الأرض ومعارك ملحمية لإنقاذ الكون.",
+                episodes = filteredEpisodesList,
+                imageUrl = DEFAULT_DBZ_COVER_URL,
+                status = "مكتمل"
+            )
+        }
+    }
+
+    val seasonsToShow by remember(dbzSeason) {
+        androidx.compose.runtime.derivedStateOf { listOf(dbzSeason) }
+    }
 
     when (selectedDestination) {
         MainDestination.Anime -> {
@@ -868,8 +747,9 @@ private fun DragonBallHomeContent(
                                 selectedVideoUrl = sampleUrl
                             },
                             modifier = modifier,
-                            isFavoriteProvider = { episodeId ->
-                                viewModel.isFavoriteFlow(episodeId).value
+                            isFavorite = { episodeId ->
+                                // No @Composable calls here; this is consumed inside the Lazy list item scope.
+                                viewModel.isFavoriteState(episodeId).value
                             },
                             onToggleFavorite = { episodeId, isFav ->
                                 viewModel.toggleFavorite(episodeId, isFav)
@@ -1168,7 +1048,7 @@ private fun SeasonDetailsScreen(
     onBack: () -> Unit,
     onEpisodeClick: (Episode) -> Unit,
     modifier: Modifier = Modifier,
-    isFavoriteProvider: (String) -> Boolean,
+    isFavorite: (String) -> Boolean,
     onToggleFavorite: (String, Boolean) -> Unit
 ) {
     val bannerHeight = 280.dp
@@ -1378,7 +1258,7 @@ private fun SeasonDetailsScreen(
                 episode = episode,
                 onClick = { onEpisodeClick(episode) },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                isFavorite = isFavoriteProvider(episode.id),
+                isFavorite = isFavorite(episode.id),
                 onToggleFavorite = { checked ->
                     onToggleFavorite(episode.id, checked)
                 }

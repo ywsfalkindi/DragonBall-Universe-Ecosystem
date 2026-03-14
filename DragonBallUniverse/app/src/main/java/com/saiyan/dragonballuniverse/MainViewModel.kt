@@ -12,9 +12,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 
 sealed interface UiState {
     data object Loading : UiState
@@ -30,6 +30,12 @@ sealed interface UiState {
 class MainViewModel(
     application: Application
 ) : AndroidViewModel(application) {
+
+    private val favoriteFlows: ConcurrentHashMap<String, StateFlow<Boolean>> =
+        ConcurrentHashMap()
+
+    private val watchProgressFlows: ConcurrentHashMap<String, StateFlow<Long?>> =
+        ConcurrentHashMap()
 
     private val dao: EpisodeDao by lazy {
         UserDatabase.getInstance(application.applicationContext).episodeDao()
@@ -77,6 +83,7 @@ class MainViewModel(
         }
 
     fun toggleFavorite(episodeId: String, makeFavorite: Boolean) {
+        // Update DB + update cached StateFlow (so Compose UI updates immediately).
         viewModelScope.launch(Dispatchers.IO) {
             val existing = dao.getEpisode(episodeId)
             val updated =
@@ -90,6 +97,9 @@ class MainViewModel(
                     existing.copy(isFavorite = makeFavorite)
                 }
             dao.upsert(updated)
+
+            // Keep in-memory state in sync
+            (favoriteFlows[episodeId] as? MutableStateFlow<Boolean>)?.value = makeFavorite
         }
     }
 
@@ -107,43 +117,50 @@ class MainViewModel(
                     existing.copy(watchProgress = progressMs)
                 }
             dao.upsert(updated)
+
+            // Keep in-memory state in sync
+            (watchProgressFlows[episodeId] as? MutableStateFlow<Long?>)?.value = progressMs
         }
     }
 
-    fun isFavoriteFlow(
+    fun isFavoriteState(
         episodeId: String
-    ): StateFlow<Boolean> {
-        val flow = MutableStateFlow(false)
+    ): StateFlow<Boolean> =
+        favoriteFlows.getOrPut(episodeId) {
+            val flow = MutableStateFlow(false)
 
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                flow.value = dao.isFavorite(episodeId) ?: false
-            } catch (_: Exception) {
-                flow.value = false
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    flow.value = dao.isFavorite(episodeId) ?: false
+                } catch (_: Exception) {
+                    flow.value = false
+                }
             }
+
+            flow.asStateFlow()
         }
 
-        return flow.asStateFlow()
-    }
-
-    fun watchProgressMsFlow(
+    fun watchProgressMsState(
         episodeId: String
-    ): StateFlow<Long?> {
-        val flow = MutableStateFlow<Long?>(null)
+    ): StateFlow<Long?> =
+        watchProgressFlows.getOrPut(episodeId) {
+            val flow = MutableStateFlow<Long?>(null)
 
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                flow.value = dao.getWatchProgress(episodeId)
-            } catch (_: Exception) {
-                flow.value = null
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    flow.value = dao.getWatchProgress(episodeId)
+                } catch (_: Exception) {
+                    flow.value = null
+                }
             }
+
+            flow.asStateFlow()
         }
 
-        return flow.asStateFlow()
-    }
-
-    fun refreshEpisodeDbState(episodeId: String) {
-        // Optional hook if you want to force refresh flows later without turning DAO into Flow queries.
-        // Intentionally left no-op for now.
-    }
+    suspend fun watchProgressMs(
+        episodeId: String
+    ): Long? =
+        withContext(Dispatchers.IO) {
+            dao.getWatchProgress(episodeId)
+        }
 }

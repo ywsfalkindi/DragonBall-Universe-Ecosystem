@@ -4,8 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.consumePositionChange
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.abs
 import androidx.compose.foundation.layout.Box
@@ -163,14 +163,14 @@ fun MangaChapterReaderScreen(
                     modifier =
                         Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = 16.dp),
+                            .padding(bottom = MangaConstants.PAGE_INDICATOR_BOTTOM_PADDING),
                 )
 
                 IconButton(
                     onClick = onBack,
                     modifier =
                         Modifier
-                            .padding(12.dp)
+                            .padding(MangaConstants.BACK_BUTTON_PADDING)
                             .align(Alignment.TopStart),
                 ) {
                     Icon(
@@ -184,22 +184,33 @@ fun MangaChapterReaderScreen(
     }
 }
 
+private object MangaConstants {
+    const val MIN_SCALE = 1f
+    const val MAX_SCALE = 3f
+    const val HORIZONTAL_SWIPE_THRESHOLD_PX = 0.5f
+
+    val PAGE_INDICATOR_BOTTOM_PADDING = 16.dp
+    val BACK_BUTTON_PADDING = 12.dp
+}
+
 @Composable
 private fun ZoomablePageImage(
     model: Any,
 ) {
     val context = LocalContext.current
 
-    var scale by remember { mutableFloatStateOf(1f) }
+    var scale by remember { mutableFloatStateOf(MangaConstants.MIN_SCALE) }
     var offset by remember { mutableStateOf(Offset.Zero) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
+
+    val isZoomed by remember { derivedStateOf { scale > MangaConstants.MIN_SCALE } }
 
     fun clampPanOffset(
         inOffset: Offset,
         inScale: Float,
         container: IntSize,
     ): Offset {
-        if (container == IntSize.Zero || inScale <= 1f) return Offset.Zero
+        if (container == IntSize.Zero || inScale <= MangaConstants.MIN_SCALE) return Offset.Zero
 
         val maxTranslationX = (container.width * (inScale - 1f)) / 2f
         val maxTranslationY = (container.height * (inScale - 1f)) / 2f
@@ -240,36 +251,40 @@ private fun ZoomablePageImage(
                         val pan = event.calculatePan()
 
                         val centroidMovedHorizontally =
-                            abs(pan.x) > abs(pan.y) && abs(pan.x) > 0.5f
+                            abs(pan.x) > abs(pan.y) && abs(pan.x) > MangaConstants.HORIZONTAL_SWIPE_THRESHOLD_PX
 
                         val isPinch = pressedCount > 1 && zoom != 1f
-                        val isZoomed = scale > 1f
 
                         // Golden rule + horizontal priority:
                         // - At base scale, single pointer, horizontal movement => let pager have it (never consume)
                         // - If pinch OR already zoomed => we own it and consume
                         if (!gestureOwns) {
                             gestureOwns =
-                                isPinch || isZoomed || (pressedCount > 1) || (scale == 1f && !centroidMovedHorizontally && zoom != 1f)
+                                isPinch || isZoomed || (pressedCount > 1) || (scale == MangaConstants.MIN_SCALE && !centroidMovedHorizontally && zoom != 1f)
                         }
 
-                        if (!gestureOwns && scale == 1f && pressedCount == 1 && centroidMovedHorizontally) {
+                        if (!gestureOwns && scale == MangaConstants.MIN_SCALE && pressedCount == 1 && centroidMovedHorizontally) {
                             // Pass-through: do not consume, do not update state.
                             continue
                         }
 
                         // If we got here, we are handling zoom/pan => consume.
                         if (gestureOwns) {
-                            changes.forEach { it.consumePositionChange() }
+                            // Deprecated consumePositionChange() replacement:
+                            changes.forEach { it.consume() }
                         }
 
                         // Apply zoom immediately (pinch).
-                        val newScale = (scale * zoom).coerceIn(1f, 3f)
+                        val newScale =
+                            (scale * zoom).coerceIn(
+                                MangaConstants.MIN_SCALE,
+                                MangaConstants.MAX_SCALE,
+                            )
                         scale = newScale
 
                         // Apply pan only when zoomed.
                         offset =
-                            if (newScale <= 1f) {
+                            if (newScale <= MangaConstants.MIN_SCALE) {
                                 Offset.Zero
                             } else {
                                 clampPanOffset(offset + pan, newScale, containerSize)
