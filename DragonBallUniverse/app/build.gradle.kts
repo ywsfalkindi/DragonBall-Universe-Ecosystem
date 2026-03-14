@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -82,6 +83,10 @@ dependencies {
 
     // Google Fonts (Cairo)
     implementation("androidx.compose.ui:ui-text-google-fonts:1.6.2")
+
+    // Firebase Cloud Messaging (Push Notifications)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

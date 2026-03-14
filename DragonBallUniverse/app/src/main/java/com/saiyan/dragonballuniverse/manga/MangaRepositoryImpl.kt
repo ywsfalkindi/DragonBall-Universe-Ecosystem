@@ -8,11 +8,16 @@ import com.saiyan.dragonballuniverse.network.MangaApiService
 import com.saiyan.dragonballuniverse.network.MangaRetrofitClient
 import com.saiyan.dragonballuniverse.network.PocketBaseClient
 import com.saiyan.dragonballuniverse.network.PocketBaseMangaChapterRecord
-import okhttp3.OkHttpClient
-import okhttp3.Request
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 class MangaRepositoryImpl(
     // Kept for compatibility with existing DI/wiring, but no longer used for chapter/page listing.
@@ -141,27 +146,52 @@ class MangaRepositoryImpl(
                     "$baseUrl/manga/${arc.toApiArc()}/$chapterFolder/$fileName"
                 }
             } else {
-                // Fallback: probe sequential pages (001.webp, 002.webp...) until 3 misses in a row.
-                val urls = mutableListOf<String>()
+                // Fallback: probe pages in parallel blocks to avoid sequential network latency.
+                // Strategy:
+                // - Probe in batches of [batchSize] concurrently.
+                // - Stop after we observe [maxConsecutiveMisses] misses in a row (same behavior as before).
+                // - Keep a hard cap [maxPagesToProbe] as safety.
                 val maxPagesToProbe = 500 // safety cap; adjust if needed
                 val maxConsecutiveMisses = 3
+                val batchSize = 10
 
+                val urls = mutableListOf<String>()
                 var consecutiveMisses = 0
 
-                for (pageNumber in 1..maxPagesToProbe) {
-                    val fileName = "${pageNumber.toString().padStart(3, '0')}.webp"
-                    val url = "$baseUrl/manga/${arc.toApiArc()}/$chapterFolder/$fileName"
+                withContext(Dispatchers.IO) {
+                    var pageNumber = 1
+                    while (pageNumber <= maxPagesToProbe && consecutiveMisses < maxConsecutiveMisses) {
+                        val batch =
+                            (pageNumber until (pageNumber + batchSize).coerceAtMost(maxPagesToProbe + 1))
+                                .toList()
 
-                    if (remoteFileExists(url)) {
-                        urls.add(url)
-                        consecutiveMisses = 0
-                    } else {
-                        consecutiveMisses += 1
-                        if (consecutiveMisses >= maxConsecutiveMisses) {
-                            break
+                        val results =
+                            coroutineScope {
+                                batch.map { n ->
+                                    async {
+                                        val fileName = "${n.toString().padStart(3, '0')}.webp"
+                                        val url = "$baseUrl/manga/${arc.toApiArc()}/$chapterFolder/$fileName"
+                                        n to (url to remoteFileExists(url))
+                                    }
+                                }.awaitAll()
+                            }
+                                .sortedBy { it.first } // ensure ordered handling
+
+                        for ((n, pair) in results) {
+                            val (url, exists) = pair
+                            if (exists) {
+                                urls.add(url)
+                                consecutiveMisses = 0
+                            } else {
+                                consecutiveMisses += 1
+                                if (consecutiveMisses >= maxConsecutiveMisses) break
+                            }
                         }
+
+                        pageNumber += batchSize
                     }
                 }
+
                 urls
             }
 

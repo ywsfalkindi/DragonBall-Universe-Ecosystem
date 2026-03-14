@@ -33,7 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.saiyan.dragonballuniverse.R
 import com.saiyan.dragonballuniverse.manga.MangaArc
 import com.saiyan.dragonballuniverse.manga.MangaHomeUiState
 import com.saiyan.dragonballuniverse.manga.MangaRepository
@@ -52,7 +54,7 @@ fun MangaHomeScreen(
         val s = state
         if (s is MangaHomeUiState.Error) {
             Toast
-                .makeText(context, "Manga load error: ${s.details}", Toast.LENGTH_LONG)
+                .makeText(context, context.getString(R.string.manga_load_error, s.details), Toast.LENGTH_LONG)
                 .show()
         }
     }
@@ -65,7 +67,7 @@ fun MangaHomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("المانجا") },
+                title = { Text(stringResource(R.string.manga_title)) },
             )
         },
     ) { padding ->
@@ -83,9 +85,9 @@ fun MangaHomeScreen(
                         text = {
                             Text(
                                 when (arc) {
-                                    MangaArc.CLASSIC -> "Classic"
-                                    MangaArc.Z -> "Z"
-                                    MangaArc.SUPER -> "Super"
+                                    MangaArc.CLASSIC -> stringResource(R.string.manga_arc_classic)
+                                    MangaArc.Z -> stringResource(R.string.manga_arc_z)
+                                    MangaArc.SUPER -> stringResource(R.string.manga_arc_super)
                                 },
                             )
                         },
@@ -102,7 +104,7 @@ fun MangaHomeScreen(
                     ) {
                         CircularProgressIndicator()
                         Spacer(Modifier.padding(8.dp))
-                        Text("جاري تحميل الفصول...")
+                        Text(stringResource(R.string.manga_loading_chapters))
                     }
                 }
 
@@ -116,18 +118,18 @@ fun MangaHomeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = "حدث خطأ: ${s.message}",
+                            text = stringResource(R.string.manga_error_prefix, s.message),
                             color = MaterialTheme.colorScheme.error,
                         )
                         Spacer(Modifier.padding(6.dp))
                         Text(
-                            text = "تفاصيل: ${s.details}",
+                            text = stringResource(R.string.manga_error_details_prefix, s.details),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Spacer(Modifier.padding(8.dp))
                         Text(
-                            text = "اضغط على التبويب لإعادة المحاولة",
+                            text = stringResource(R.string.manga_retry_hint),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -187,12 +189,16 @@ private fun MangaChapterList(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "الفصل ${chapter.info.chapterNumber}: ${chapter.info.title}",
+                        text = stringResource(
+                            R.string.manga_chapter_title,
+                            chapter.info.chapterNumber,
+                            chapter.info.title
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "عدد الصفحات: ${chapter.info.pageCount}",
+                        text = stringResource(R.string.manga_page_count, chapter.info.pageCount),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -204,12 +210,19 @@ private fun MangaChapterList(
                 if (chapter.isDownloaded) {
                     AssistChip(
                         onClick = {},
-                        label = { Text("Offline") },
+                        label = { Text(stringResource(R.string.manga_offline)) },
                     )
                 } else if (dlStatus == "downloading") {
                     val label =
-                        if (dlProg != null) "تحميل ${dlProg.first}/${dlProg.second}"
-                        else "تحميل..."
+                        if (dlProg != null) {
+                            stringResource(
+                                R.string.manga_downloading_progress,
+                                dlProg.first,
+                                dlProg.second
+                            )
+                        } else {
+                            stringResource(R.string.manga_downloading)
+                        }
                     AssistChip(
                         onClick = {},
                         label = { Text(label) },
@@ -223,7 +236,7 @@ private fun MangaChapterList(
                             contentColor = Color.White,
                         ),
                     ) {
-                        Text("Download")
+                        Text(stringResource(R.string.manga_download))
                     }
                 }
 
@@ -232,12 +245,19 @@ private fun MangaChapterList(
                     if (chapter.isCompleted) {
                         AssistChip(
                             onClick = {},
-                            label = { Text("مكتمل") },
+                            label = { Text(stringResource(R.string.manga_completed)) },
                         )
                     } else if (chapter.lastReadPageIndex > 0) {
                         AssistChip(
                             onClick = {},
-                            label = { Text("صفحة ${chapter.lastReadPageIndex + 1}") },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        R.string.manga_page_chip,
+                                        chapter.lastReadPageIndex + 1
+                                    )
+                                )
+                            },
                         )
                     }
                 }

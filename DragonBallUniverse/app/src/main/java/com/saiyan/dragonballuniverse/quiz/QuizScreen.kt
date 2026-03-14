@@ -53,6 +53,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -85,7 +86,7 @@ fun QuizMainScreen(
         val s = uiState
         if (s is QuizUiState.Error) {
             Toast
-                .makeText(context, "Quiz error: ${s.details}", Toast.LENGTH_LONG)
+                .makeText(context, context.getString(R.string.quiz_error, s.details), Toast.LENGTH_LONG)
                 .show()
         }
     }
@@ -117,7 +118,7 @@ fun QuizMainScreen(
                         .padding(16.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = "جاري تحميل الأسئلة...", color = Color.White)
+                Text(text = stringResource(R.string.quiz_loading_questions), color = Color.White)
             }
         }
 
@@ -147,8 +148,8 @@ fun QuizMainScreen(
                     .padding(16.dp)
             ) {
                 QuizResultContent(
-                    title = "انتهت حبات السنزو!",
-                    subtitle = "حاول مرة أخرى غداً أو اجمع طاقة أكثر.",
+                    title = stringResource(R.string.quiz_game_over_title),
+                    subtitle = stringResource(R.string.quiz_game_over_subtitle),
                     earnedPower = state.earnedPower,
                     powerLevel = stats.powerLevel,
                     onBack = { viewModel.backToHome() },
@@ -166,8 +167,8 @@ fun QuizMainScreen(
                         .padding(16.dp),
             ) {
                 QuizResultContent(
-                    title = "أحسنت! أنهيت التحدي",
-                    subtitle = "استمر… قوتك تزداد مع كل معركة!",
+                    title = stringResource(R.string.quiz_victory_title),
+                    subtitle = stringResource(R.string.quiz_victory_subtitle),
                     earnedPower = state.earnedPower,
                     powerLevel = stats.powerLevel,
                     onBack = { viewModel.backToHome() },
@@ -212,7 +213,7 @@ private fun QuizHomeContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "قسم التحديات",
+            text = stringResource(R.string.quiz_section_title),
             color = Color.White,
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold
@@ -231,7 +232,7 @@ private fun QuizHomeContent(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "مستوى الطاقة",
+                    text = stringResource(R.string.quiz_power_level_label),
                     color = Color(0xFFBDBDBD),
                     fontSize = 14.sp
                 )
@@ -243,7 +244,7 @@ private fun QuizHomeContent(
                 )
 
                 Text(
-                    text = "الرتبة: $rankName",
+                    text = stringResource(R.string.quiz_rank_label, rankName),
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
@@ -264,7 +265,7 @@ private fun QuizHomeContent(
                 ) {
                     Column {
                         Text(
-                            text = "حبات السنزو",
+                            text = stringResource(R.string.quiz_senzu_beans_label),
                             color = Color(0xFFBDBDBD),
                             fontSize = 12.sp
                         )
@@ -278,7 +279,7 @@ private fun QuizHomeContent(
 
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = "أعلى ستريك",
+                            text = stringResource(R.string.quiz_highest_streak_label),
                             color = Color(0xFFBDBDBD),
                             fontSize = 12.sp
                         )
@@ -297,8 +298,8 @@ private fun QuizHomeContent(
 
         val startEnabled = senzuBeans > 0 // 0 Senzu: Disable button.
         val startLabel =
-            if (startEnabled) "ابدأ التحدي"
-            else "لا توجد حبات سنزو"
+            if (startEnabled) stringResource(R.string.quiz_start_challenge)
+            else stringResource(R.string.quiz_no_senzu_beans)
 
         Button(
             onClick = onStart,
@@ -320,7 +321,7 @@ private fun QuizHomeContent(
         }
 
         Text(
-            text = "القواعد: عند الخطأ أو انتهاء الوقت → السؤال التالي مباشرة.",
+            text = stringResource(R.string.quiz_rules_text),
             color = Color(0xFFBDBDBD),
             fontSize = 12.sp,
             textAlign = TextAlign.Center,
@@ -345,7 +346,7 @@ private fun QuizPlayingContent(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "جاري التحميل...", color = Color.White)
+            Text(text = stringResource(R.string.quiz_loading_generic), color = Color.White)
         }
         return
     }
@@ -415,12 +416,16 @@ private fun QuizPlayingContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "سؤال ${session.currentIndex + 1} / ${session.questions.size}",
+                text = stringResource(
+                    R.string.quiz_question_counter,
+                    session.currentIndex + 1,
+                    session.questions.size
+                ),
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "سنزو: $senzuBeans",
+                text = stringResource(R.string.quiz_senzu_counter, senzuBeans),
                 color = GokuOrange,
                 fontWeight = FontWeight.Bold
             )
@@ -472,7 +477,10 @@ private fun QuizPlayingContent(
                         )
 
                         Text(
-                            text = "الصعوبة: ${difficultyLabel(q.difficulty)}",
+                            text = stringResource(
+                                R.string.quiz_difficulty_label,
+                                difficultyLabel(q.difficulty)
+                            ),
                             color = Color(0xFFBDBDBD),
                             fontSize = 12.sp,
                             modifier = Modifier.padding(top = 10.dp)
@@ -506,7 +514,7 @@ private fun QuizPlayingContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "القاعدة: خطأ = خصم سنزو + السؤال التالي",
+            text = stringResource(R.string.quiz_rule_short),
             color = Color(0xFFBDBDBD),
             fontSize = 12.sp,
             modifier = Modifier.padding(top = 4.dp)
@@ -666,7 +674,11 @@ private fun QuizResultContent(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Text(text = "الطاقة المكتسبة", color = Color(0xFFBDBDBD), fontSize = 12.sp)
+                        Text(
+                            text = stringResource(R.string.quiz_earned_power_label),
+                            color = Color(0xFFBDBDBD),
+                            fontSize = 12.sp
+                        )
                         Text(
                             text = earnedPower.toString(),
                             color = GokuOrange,
@@ -675,7 +687,11 @@ private fun QuizResultContent(
                         )
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(text = "مستوى الطاقة الحالي", color = Color(0xFFBDBDBD), fontSize = 12.sp)
+                        Text(
+                            text = stringResource(R.string.quiz_current_power_level_label),
+                            color = Color(0xFFBDBDBD),
+                            fontSize = 12.sp
+                        )
                         Text(
                             text = animatedPower.toString(),
                             color = Color.White,
@@ -696,7 +712,7 @@ private fun QuizResultContent(
             shape = RoundedCornerShape(14.dp)
         ) {
             Text(
-                text = "العودة",
+                text = stringResource(R.string.quiz_back),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(vertical = 6.dp)
             )
@@ -704,22 +720,24 @@ private fun QuizResultContent(
     }
 }
 
+@Composable
 fun getRankName(powerLevel: Long): String =
     when {
-        powerLevel < 1_000L -> "أرضي"
-        powerLevel < 10_000L -> "مقاتل"
-        powerLevel < 100_000L -> "مقاتل النخبة"
-        powerLevel < 1_000_000L -> "سوبر سايان"
-        powerLevel < 10_000_000L -> "سوبر سايان 2"
-        powerLevel < 100_000_000L -> "سوبر سايان 3"
-        else -> "غريزة فائقة"
+        powerLevel < 1_000L -> stringResource(R.string.rank_earthling)
+        powerLevel < 10_000L -> stringResource(R.string.rank_fighter)
+        powerLevel < 100_000L -> stringResource(R.string.rank_elite_fighter)
+        powerLevel < 1_000_000L -> stringResource(R.string.rank_super_saiyan_1)
+        powerLevel < 10_000_000L -> stringResource(R.string.rank_super_saiyan_2)
+        powerLevel < 100_000_000L -> stringResource(R.string.rank_super_saiyan_3)
+        else -> stringResource(R.string.rank_ultra_instinct)
     }
 
+@Composable
 private fun difficultyLabel(diff: String): String =
     when (diff) {
-        DIFF_EASY -> "سهل"
-        DIFF_MEDIUM -> "متوسط"
-        DIFF_HARD -> "صعب"
-        DIFF_INSANE -> "أسطوري"
+        DIFF_EASY -> stringResource(R.string.difficulty_easy)
+        DIFF_MEDIUM -> stringResource(R.string.difficulty_medium)
+        DIFF_HARD -> stringResource(R.string.difficulty_hard)
+        DIFF_INSANE -> stringResource(R.string.difficulty_insane)
         else -> diff
     }

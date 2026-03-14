@@ -1,4 +1,5 @@
 import DataTable, { type Column } from "@/components/DataTable";
+import UploadChapterClient from "./upload-chapter-client.tsx";
 import { getServerAdminPb } from "@/lib/pb/adminFetch";
 
 type MangaChapter = {
@@ -66,13 +67,19 @@ export default async function MangaPage({
   return (
     <div className="space-y-4">
       <div className="db-card p-5">
-        <h1 className="text-xl font-semibold">
-          Manga Management <span className="text-[#F0833A]">/ Chapters</span>
-        </h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Listing records from <code className="text-zinc-200">manga_chapters</code>
-          .
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold">
+              Manga Management <span className="text-[#F0833A]">/ Chapters</span>
+            </h1>
+            <p className="mt-1 text-sm text-zinc-400">
+              Listing records from{" "}
+              <code className="text-zinc-200">manga_chapters</code>.
+            </p>
+          </div>
+
+          <UploadChapterClient />
+        </div>
       </div>
 
       {error ? (

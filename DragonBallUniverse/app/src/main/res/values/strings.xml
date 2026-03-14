@@ -1,3 +1,97 @@
 <resources>
     <string name="app_name">DragonBallUniverse</string>
+
+    <!-- Quiz -->
+    <string name="quiz_error">Quiz error: %1$s</string>
+    <string name="quiz_loading_questions">جاري تحميل الأسئلة...</string>
+    <string name="quiz_game_over_title">انتهت حبات السنزو!</string>
+    <string name="quiz_game_over_subtitle">حاول مرة أخرى غداً أو اجمع طاقة أكثر.</string>
+    <string name="quiz_victory_title">أحسنت! أنهيت التحدي</string>
+    <string name="quiz_victory_subtitle">استمر… قوتك تزداد مع كل معركة!</string>
+    <string name="quiz_section_title">قسم التحديات</string>
+    <string name="quiz_power_level_label">مستوى الطاقة</string>
+    <string name="quiz_rank_label">الرتبة: %1$s</string>
+    <string name="quiz_senzu_beans_label">حبات السنزو</string>
+    <string name="quiz_highest_streak_label">أعلى ستريك</string>
+    <string name="quiz_start_challenge">ابدأ التحدي</string>
+    <string name="quiz_no_senzu_beans">لا توجد حبات سنزو</string>
+    <string name="quiz_rules_text">القواعد: عند الخطأ أو انتهاء الوقت → السؤال التالي مباشرة.</string>
+    <string name="quiz_loading_generic">جاري التحميل...</string>
+    <string name="quiz_question_counter">سؤال %1$d / %2$d</string>
+    <string name="quiz_senzu_counter">سنزو: %1$d</string>
+    <string name="quiz_difficulty_label">الصعوبة: %1$s</string>
+    <string name="quiz_rule_short">القاعدة: خطأ = خصم سنزو + السؤال التالي</string>
+    <string name="quiz_earned_power_label">الطاقة المكتسبة</string>
+    <string name="quiz_current_power_level_label">مستوى الطاقة الحالي</string>
+    <string name="quiz_back">العودة</string>
+
+    <!-- Quiz ranks -->
+    <string name="rank_earthling">أرضي</string>
+    <string name="rank_fighter">مقاتل</string>
+    <string name="rank_elite_fighter">مقاتل النخبة</string>
+    <string name="rank_super_saiyan_1">سوبر سايان</string>
+    <string name="rank_super_saiyan_2">سوبر سايان 2</string>
+    <string name="rank_super_saiyan_3">سوبر سايان 3</string>
+    <string name="rank_ultra_instinct">غريزة فائقة</string>
+
+    <!-- Quiz difficulty -->
+    <string name="difficulty_easy">سهل</string>
+    <string name="difficulty_medium">متوسط</string>
+    <string name="difficulty_hard">صعب</string>
+    <string name="difficulty_insane">أسطوري</string>
+
+    <!-- Home -->
+    <string name="topbar_title_default">دراغون بول بالعربي</string>
+    <string name="search_placeholder_episode">ابحث عن حلقة...</string>
+    <string name="search_cd">بحث</string>
+    <string name="nav_anime">أنمي</string>
+    <string name="nav_manga">مانغا</string>
+    <string name="nav_quiz">تحديات</string>
+    <string name="cd_back">رجوع</string>
+    <string name="dbz_season_title">دراغون بول زد</string>
+    <string name="dbz_season_year">1989</string>
+    <string name="dbz_season_description">وصول السايانز إلى الأرض ومعارك ملحمية لإنقاذ الكون.</string>
+    <string name="status_unknown">غير معروف</string>
+    <string name="episode_count_suffix">حلقة</string>
+    <string name="genre_action">أكشن</string>
+    <string name="genre_adventure">مغامرة</string>
+    <string name="genre_shonen">شونين</string>
+    <string name="watch_now">مشاهدة الآن</string>
+    <string name="synopsis_title">القصة</string>
+    <string name="synopsis_empty">لا توجد قصة متاحة حالياً.</string>
+    <string name="episodes_title">الحلقات</string>
+    <string name="show_less">إظهار أقل</string>
+    <string name="show_more">إظهار المزيد</string>
+    <string name="retry">حاول مجدداً</string>
+    <string name="favorite_cd">مفضلة</string>
+    <string name="play_cd">تشغيل</string>
+    <string name="cover_cd_prefix">غلاف</string>
+
+    <!-- Home (missing keys referenced from HomeScreen) -->
+    <string name="status_ongoing">مستمر</string>
+    <string name="status_completed">مكتمل</string>
+    <string name="status_coming">قريباً</string>
+    <string name="chapter_prefix">الفصل</string>
+    <string name="download_cd">تحميل</string>
+    <string name="episode_prefix">الحلقة</string>
+    <string name="episode_image_cd_prefix">صورة الحلقة</string>
+
+    <!-- Manga home -->
+    <string name="manga_load_error">Manga load error: %1$s</string>
+    <string name="manga_title">المانجا</string>
+    <string name="manga_arc_classic">Classic</string>
+    <string name="manga_arc_z">Z</string>
+    <string name="manga_arc_super">Super</string>
+    <string name="manga_loading_chapters">جاري تحميل الفصول...</string>
+    <string name="manga_error_prefix">حدث خطأ: %1$s</string>
+    <string name="manga_error_details_prefix">تفاصيل: %1$s</string>
+    <string name="manga_retry_hint">اضغط على التبويب لإعادة المحاولة</string>
+    <string name="manga_chapter_title">الفصل %1$d: %2$s</string>
+    <string name="manga_page_count">عدد الصفحات: %1$d</string>
+    <string name="manga_offline">Offline</string>
+    <string name="manga_downloading_progress">تحميل %1$d/%2$d</string>
+    <string name="manga_downloading">تحميل...</string>
+    <string name="manga_download">Download</string>
+    <string name="manga_completed">مكتمل</string>
+    <string name="manga_page_chip">صفحة %1$d</string>
 </resources>

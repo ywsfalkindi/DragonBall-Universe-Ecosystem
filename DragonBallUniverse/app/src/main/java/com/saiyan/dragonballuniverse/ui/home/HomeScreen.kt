@@ -36,24 +36,16 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -74,6 +66,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
@@ -82,6 +75,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.saiyan.dragonballuniverse.R
 import com.saiyan.dragonballuniverse.MainViewModel
 import com.saiyan.dragonballuniverse.UiState
 import com.saiyan.dragonballuniverse.manga.MangaArc
@@ -96,17 +90,16 @@ import com.saiyan.dragonballuniverse.ui.anime.Episode
 import com.saiyan.dragonballuniverse.ui.anime.Manga
 import com.saiyan.dragonballuniverse.ui.anime.MangaChapter
 import com.saiyan.dragonballuniverse.ui.anime.NullableAnimeSeasonSaver
+import com.saiyan.dragonballuniverse.ui.components.DragonBallBottomBar
+import com.saiyan.dragonballuniverse.ui.components.DragonBallTopBar
+import com.saiyan.dragonballuniverse.ui.components.GenreChip
+import com.saiyan.dragonballuniverse.ui.components.MainDestination
 import com.saiyan.dragonballuniverse.ui.theme.DarkBackground
 import com.saiyan.dragonballuniverse.ui.theme.GokuOrange
 import com.saiyan.dragonballuniverse.ui.theme.VegetaBlue
 import com.saiyan.dragonballuniverse.ui.utils.bounceClick
+import com.saiyan.dragonballuniverse.ui.utils.resolveImageUrl
 import com.saiyan.dragonballuniverse.ui.video.VideoPlayerScreen
-
-private enum class MainDestination {
-    Anime,
-    Manga,
-    Quiz
-}
 
 @Composable
 fun DragonBallScaffold(
@@ -150,117 +143,15 @@ fun DragonBallScaffold(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DragonBallTopBar(
-    title: String = "دراغون بول بالعربي",
-    isSearchMode: Boolean,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    onToggleSearch: () -> Unit,
-) {
-    TopAppBar(
-        title = {
-            if (isSearchMode) {
-                TextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    singleLine = true,
-                    placeholder = { Text("ابحث عن حلقة...") }
-                )
-            } else {
-                Text(text = title)
-            }
-        },
-        actions = {
-            IconButton(onClick = onToggleSearch) {
-                Icon(
-                    imageVector = Icons.Filled.Search,
-                    contentDescription = "بحث",
-                    tint = Color.White
-                )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = VegetaBlue,
-            titleContentColor = Color.White
-        )
-    )
-}
 
-@Composable
-private fun DragonBallBottomBar(
-    selected: MainDestination,
-    onSelect: (MainDestination) -> Unit
-) {
-    NavigationBar(
-        containerColor = VegetaBlue
-    ) {
-        NavigationBarItem(
-            selected = selected == MainDestination.Anime,
-            onClick = { onSelect(MainDestination.Anime) },
-            icon = { Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = "أنمي") },
-            label = { Text("أنمي") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = GokuOrange,
-                selectedTextColor = GokuOrange,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray,
-                indicatorColor = Color.Transparent
-            )
-        )
-        NavigationBarItem(
-            selected = selected == MainDestination.Manga,
-            onClick = { onSelect(MainDestination.Manga) },
-            icon = { Icon(imageVector = Icons.AutoMirrored.Filled.MenuBook, contentDescription = "مانغا") },
-            label = { Text("مانغا") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = GokuOrange,
-                selectedTextColor = GokuOrange,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray,
-                indicatorColor = Color.Transparent
-            )
-        )
-
-        NavigationBarItem(
-            selected = selected == MainDestination.Quiz,
-            onClick = { onSelect(MainDestination.Quiz) },
-            icon = { Icon(imageVector = Icons.Filled.Star, contentDescription = "تحديات") },
-            label = { Text("تحديات") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = GokuOrange,
-                selectedTextColor = GokuOrange,
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray,
-                indicatorColor = Color.Transparent
-            )
-        )
-    }
-}
-
-private fun statusBadgeColor(
-    status: String
-): Color =
+private fun statusBadgeColor(status: String): Color =
     when (status) {
-        "مستمر" -> Color(0xFF2E7D32)
-        "مكتمل" -> Color(0xFF1565C0)
-        "قادم" -> Color(0xFFEF6C00)
+        "ongoing" -> Color(0xFF2E7D32)
+        "completed" -> Color(0xFF1565C0)
+        "coming" -> Color(0xFFEF6C00)
         else -> Color(0xFF616161)
     }
 
-fun resolveImageUrl(
-    primary: String?,
-    fallback: String = DEFAULT_DBZ_COVER_URL
-): String {
-    val trimmed = primary?.trim().orEmpty()
-    val chosen = if (trimmed.isBlank()) fallback else trimmed
-    return if (chosen.startsWith("http://")) {
-        "https://${chosen.removePrefix("http://")}"
-    } else {
-        chosen
-    }
-}
 
 @Composable
 private fun ExpandableText(
@@ -282,7 +173,9 @@ private fun ExpandableText(
 
     if (showToggle) {
         Text(
-            text = if (expanded) "إظهار أقل" else "إظهار المزيد",
+            text =
+                if (expanded) stringResource(R.string.show_less)
+                else stringResource(R.string.show_more),
             color = GokuOrange,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
@@ -384,26 +277,13 @@ private fun MangaReaderScreen(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "رجوع",
+                contentDescription = stringResource(R.string.cd_back),
                 tint = Color.White
             )
         }
     }
 }
 
-private val dragonBallManga =
-    Manga(
-        title = "دراغون بول",
-        description = "وصف عربي مناسب يعرّف بعالم دراغون بول وبداية مغامرات غوكو ورحلة كرات التنين.",
-        chapters =
-            listOf(
-                MangaChapter(number = "1", title = "لقاء غوكو وبولما", date = "1984", isRead = true),
-                MangaChapter(number = "2", title = "رحلة البحث عن كرة التنين", date = "1984", isRead = true),
-                MangaChapter(number = "3", title = "أول اختبار حقيقي", date = "1984", isRead = false),
-                MangaChapter(number = "4", title = "مواجهة جديدة", date = "1984", isRead = false),
-                MangaChapter(number = "5", title = "قوة السايان الأولى", date = "1984", isRead = false),
-            ),
-    )
 
 @Composable
 private fun DragonBallHomeContent(
@@ -485,18 +365,17 @@ private fun DragonBallHomeContent(
         }
     }
 
-    val dbzSeason by remember(filteredEpisodesList) {
-        derivedStateOf {
+    val dbzSeason =
+        remember(filteredEpisodesList) {
             AnimeSeason(
-                title = "دراغون بول زد",
+                title = "Dragon Ball Z",
                 year = "1989",
-                description = "وصول السايانز إلى الأرض ومعارك ملحمية لإنقاذ الكون.",
+                description = "",
                 episodes = filteredEpisodesList,
                 imageUrl = DEFAULT_DBZ_COVER_URL,
-                status = "مكتمل"
+                status = "completed"
             )
         }
-    }
 
     val seasonsToShow by remember(dbzSeason) {
         derivedStateOf { listOf(dbzSeason) }
@@ -666,7 +545,7 @@ private fun ChapterRowItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "الفصل ${chapter.number}",
+                    text = "${stringResource(R.string.chapter_prefix)} ${chapter.number}",
                     color = chapterNumberColor,
                     fontWeight = FontWeight.Medium
                 )
@@ -685,7 +564,7 @@ private fun ChapterRowItem(
 
             Icon(
                 imageVector = Icons.Filled.Download,
-                contentDescription = "تحميل",
+                contentDescription = stringResource(R.string.download_cd),
                 tint = Color.Gray
             )
         }
@@ -728,7 +607,7 @@ private fun PosterCard(
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(16.dp)
-    val imageUrl = resolveImageUrl(season.imageUrl)
+    val imageUrl = season.imageUrl.resolveImageUrl()
     val statusLabel = season.status?.trim().orEmpty()
 
     Card(
@@ -750,11 +629,12 @@ private fun PosterCard(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(resolveImageUrl(imageUrl))
+                        .data(imageUrl.resolveImageUrl())
                         .setHeader("User-Agent", "Mozilla/5.0")
                         .crossfade(true)
                         .build(),
-                    contentDescription = "غلاف ${season.title}",
+                    contentDescription =
+                        "${stringResource(R.string.cover_cd_prefix)} ${season.title}",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     placeholder = ColorPainter(Color(0xFF2A2A2A)),
@@ -867,11 +747,11 @@ private fun SeasonDetailsScreen(
                     .fillMaxWidth()
                     .height(bannerHeight)
             ) {
-                val imageUrl = resolveImageUrl(season.imageUrl)
+                val imageUrl = season.imageUrl.resolveImageUrl()
 
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(resolveImageUrl(imageUrl))
+                        .data(imageUrl.resolveImageUrl())
                         .setHeader("User-Agent", "Mozilla/5.0")
                         .crossfade(true)
                         .build(),
@@ -908,7 +788,7 @@ private fun SeasonDetailsScreen(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "رجوع",
+                        contentDescription = stringResource(R.string.cd_back),
                         tint = Color.White
                     )
                 }
@@ -934,12 +814,15 @@ private fun SeasonDetailsScreen(
                             maxLines = 2
                         )
 
-                        val statusText = season.status?.trim().takeUnless { it.isNullOrBlank() } ?: "غير معروف"
+                        val statusText =
+                            season.status?.trim().takeUnless { it.isNullOrBlank() }
+                                ?: stringResource(R.string.status_unknown)
                         val rating = "8.7"
                         val episodesCount = season.episodes.size
 
                         Text(
-                            text = "${season.year}  •  $statusText  •  $rating  •  $episodesCount حلقة",
+                            text =
+                                "${season.year}  •  $statusText  •  $rating  •  $episodesCount ${stringResource(R.string.episode_count_suffix)}",
                             color = Color(0xFFBDBDBD),
                             modifier = Modifier.padding(top = 8.dp)
                         )
@@ -948,9 +831,9 @@ private fun SeasonDetailsScreen(
                             modifier = Modifier.padding(top = 12.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            GenreChip(text = "أكشن")
-                            GenreChip(text = "مغامرة")
-                            GenreChip(text = "شونين")
+                            GenreChip(text = stringResource(R.string.genre_action))
+                            GenreChip(text = stringResource(R.string.genre_adventure))
+                            GenreChip(text = stringResource(R.string.genre_shonen))
                         }
 
                         Card(
@@ -974,7 +857,7 @@ private fun SeasonDetailsScreen(
                                     tint = Color.Black
                                 )
                                 Text(
-                                    text = "مشاهدة الآن",
+                                    text = stringResource(R.string.watch_now),
                                     color = Color.Black,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(start = 8.dp)
@@ -993,7 +876,7 @@ private fun SeasonDetailsScreen(
                     ) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(resolveImageUrl(season.imageUrl))
+                                .data(season.imageUrl.resolveImageUrl())
                                 .setHeader("User-Agent", "Mozilla/5.0")
                                 .crossfade(true)
                                 .build(),
@@ -1016,14 +899,14 @@ private fun SeasonDetailsScreen(
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Text(
-                    text = "القصة",
+                    text = stringResource(R.string.synopsis_title),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
 
                 ExpandableText(
-                    text = season.description.ifBlank { "لا توجد قصة متاحة حالياً." },
+                    text = season.description.ifBlank { stringResource(R.string.synopsis_empty) },
                     modifier = Modifier.padding(top = 10.dp)
                 )
             }
@@ -1038,7 +921,7 @@ private fun SeasonDetailsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "الحلقات",
+                    text = stringResource(R.string.episodes_title),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
@@ -1065,26 +948,6 @@ private fun SeasonDetailsScreen(
     }
 }
 
-@Composable
-private fun GenreChip(
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(Color(0xFF2A2A2A))
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(999.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = text,
-            color = Color(0xFFE0E0E0),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
 
 @Composable
 private fun NetworkErrorScreen(
@@ -1124,7 +987,7 @@ private fun NetworkErrorScreen(
                 modifier = Modifier.padding(top = 16.dp)
             ) {
                 Text(
-                    text = "حاول مجدداً",
+                    text = stringResource(R.string.retry),
                     color = Color.Black,
                     fontWeight = FontWeight.Bold
                 )
@@ -1165,7 +1028,7 @@ private fun EpisodeRowCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "الحلقة ${episode.number}",
+                        text = "${stringResource(R.string.episode_prefix)} ${episode.number}",
                         color = Color(0xFFBDBDBD),
                         fontWeight = FontWeight.Medium
                     )
@@ -1190,7 +1053,7 @@ private fun EpisodeRowCard(
                     ) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = "مفضلة",
+                            contentDescription = stringResource(R.string.favorite_cd),
                             tint = favoriteTint
                         )
                     }
@@ -1202,15 +1065,16 @@ private fun EpisodeRowCard(
                         .size(width = 120.dp, height = 72.dp)
                         .clip(RoundedCornerShape(12.dp))
                 ) {
-                    val imageUrl = resolveImageUrl(episode.imageUrl)
+                    val imageUrl = episode.imageUrl.resolveImageUrl()
 
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(resolveImageUrl(imageUrl))
+                            .data(imageUrl.resolveImageUrl())
                             .setHeader("User-Agent", "Mozilla/5.0")
                             .crossfade(true)
                             .build(),
-                        contentDescription = "صورة الحلقة ${episode.number}",
+                        contentDescription =
+                            "${stringResource(R.string.episode_image_cd_prefix)} ${episode.number}",
                         modifier = Modifier.matchParentSize(),
                         contentScale = ContentScale.Crop,
                         placeholder = ColorPainter(Color(0xFF2A2A2A)),
@@ -1225,7 +1089,7 @@ private fun EpisodeRowCard(
 
                     Icon(
                         imageVector = Icons.Filled.PlayArrow,
-                        contentDescription = "تشغيل",
+                        contentDescription = stringResource(R.string.play_cd),
                         tint = Color.White.copy(alpha = 0.85f),
                         modifier = Modifier
                             .align(Alignment.Center)

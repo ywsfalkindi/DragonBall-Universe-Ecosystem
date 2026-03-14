@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "228725364064",
+    "project_id": "dragonballapp-8bd4a",
+    "storage_bucket": "dragonballapp-8bd4a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:228725364064:android:b19f1ad1622023df9f3a05",
+        "android_client_info": {
+          "package_name": "com.saiyan.dragonballuniverse"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_6TgTPlXOoZ7qgpZ1dtNZ20fOqZ1d1io"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
