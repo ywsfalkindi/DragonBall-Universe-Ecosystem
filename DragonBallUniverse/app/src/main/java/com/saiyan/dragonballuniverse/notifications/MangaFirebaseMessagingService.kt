@@ -31,8 +31,8 @@ class MangaFirebaseMessagingService : FirebaseMessagingService() {
             val channel =
                 NotificationChannel(
                     channelId,
-                    "Manga Updates",
-                    NotificationManager.IMPORTANCE_DEFAULT,
+                    "New Chapters",
+                    NotificationManager.IMPORTANCE_HIGH,
                 ).apply {
                     description = "Notifications for new manga chapters"
                 }
