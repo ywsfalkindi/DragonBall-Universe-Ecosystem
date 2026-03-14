@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = useMemo(
@@ -110,5 +110,14 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  // Required by Next.js when using `useSearchParams()` in a Client Component.
+  return (
+    <Suspense>
+      <LoginInner />
+    </Suspense>
   );
 }

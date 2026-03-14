@@ -1,5 +1,5 @@
 import DataTable, { type Column } from "@/components/DataTable";
-import { getServerAdminPb } from "@/lib/pb/adminFetch";
+import { getAdminListCached } from "@/lib/pb/adminFetch";
 
 type UserStats = {
   id: string;
@@ -12,13 +12,11 @@ type UserStats = {
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
-  const pb = await getServerAdminPb();
-
   let rows: UserStats[] = [];
   let error: string | null = null;
 
   try {
-    const res = await pb.collection("user_stats").getList(1, 50, {
+    const res = await getAdminListCached<UserStats>("user_stats", 1, 50, {
       sort: "-created",
     });
 
@@ -82,7 +80,12 @@ export default async function UsersPage() {
         </div>
       ) : null}
 
-      <DataTable columns={columns} rows={rows} loading={false} />
+      <DataTable
+        columns={columns}
+        rows={rows}
+        loading={false}
+        getRowId={(r) => r.id}
+      />
     </div>
   );
 }

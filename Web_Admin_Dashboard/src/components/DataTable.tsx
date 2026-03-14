@@ -12,11 +12,13 @@ export default function DataTable<Row>({
   rows,
   loading,
   emptyText = "No records found.",
+  getRowId,
 }: {
   columns: Column<Row>[];
   rows: Row[];
   loading?: boolean;
   emptyText?: string;
+  getRowId?: (row: Row) => string;
 }) {
   return (
     <div className="db-card overflow-hidden">
@@ -58,7 +60,7 @@ export default function DataTable<Row>({
             ) : (
               rows.map((row, idx) => (
                 <tr
-                  key={(row as unknown as { id?: string }).id ?? idx}
+                  key={getRowId?.(row) ?? idx}
                   className="border-t border-zinc-800 hover:bg-zinc-900/20"
                 >
                   {columns.map((c) => (
