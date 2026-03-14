@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  --background: #121212;
+  --surface: #1e1e1e;
+
+  /* Dragon Ball accents */
+  --goku-orange: #f0833a;
+  --vegeta-blue: #1c3d7a;
+}
+
+/* Tailwind v4 template keeps minimal base styles; we add our own */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: rgb(244 244 245); /* zinc-100 */
+}
+
+/* Simple reusable classes (works fine alongside Tailwind) */
+.db-surface {
+  background: var(--surface);
+}
+
+.db-card {
+  background: var(--surface);
+  border: 1px solid rgb(63 63 70); /* zinc-700 */
+  border-radius: 0.75rem;
+}
+
+.db-btn-primary {
+  background: var(--goku-orange);
+  color: #0b0b0b;
+}
+
+.db-btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+.db-btn-secondary {
+  background: var(--vegeta-blue);
+  color: white;
+}
+
+.db-btn-secondary:hover {
+  filter: brightness(1.1);
+}
+
+/* Subtle scrollbar for dark UI */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgb(63 63 70); /* zinc-700 */
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #0f0f0f;
+}

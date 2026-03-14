@@ -1,0 +1,299 @@
+package com.saiyan.dragonballuniverse.manga.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.consumePositionChange
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.saiyan.dragonballuniverse.manga.offline.MangaCoil
+import com.saiyan.dragonballuniverse.manga.MangaArc
+import com.saiyan.dragonballuniverse.manga.MangaReaderUiState
+import com.saiyan.dragonballuniverse.manga.MangaViewModel
+import com.saiyan.dragonballuniverse.manga.offline.MangaFileStore
+import com.saiyan.dragonballuniverse.manga.offline.MangaImageLoader
+
+@Composable
+fun MangaChapterReaderScreen(
+    arc: MangaArc,
+    chapterNumber: Int,
+    onBack: () -> Unit,
+    viewModel: MangaViewModel,
+) {
+    val state by viewModel.readerUiState.collectAsState()
+
+    LaunchedEffect(arc, chapterNumber) {
+        viewModel.openChapter(arc, chapterNumber)
+    }
+
+    when (val s = state) {
+        is MangaReaderUiState.Idle,
+        is MangaReaderUiState.Loading,
+        -> {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        is MangaReaderUiState.Error -> {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "خطأ: ${s.message}",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
+        is MangaReaderUiState.Success -> {
+            val chapter = s.chapter
+            val pages = chapter.pages
+            val initial = s.initialPageIndex
+
+            val context = LocalContext.current
+
+            val imageLoader =
+                remember(context.applicationContext) {
+                    MangaImageLoader(
+                        fileStore = MangaFileStore(context.applicationContext),
+                    )
+                }
+
+            // PagerState must be created in composition. Key by pages.size so the pager is recreated
+            // if a new pages list arrives (e.g., after async probing/refresh).
+            val pagerState =
+                rememberPagerState(
+                    initialPage = initial,
+                    pageCount = { pages.size },
+                )
+
+            LaunchedEffect(pages.size) {
+                // If pageCount changes, keep current page valid.
+                val maxIndex = (pages.size - 1).coerceAtLeast(0)
+                val target = pagerState.currentPage.coerceIn(0, maxIndex)
+                if (target != pagerState.currentPage) {
+                    pagerState.scrollToPage(target)
+                }
+            }
+
+            LaunchedEffect(pagerState.currentPage) {
+                val isLastPage = pagerState.currentPage == pages.lastIndex
+                viewModel.saveProgress(
+                    arc = arc,
+                    chapterNumber = chapterNumber,
+                    lastReadPageIndex = pagerState.currentPage,
+                    isCompleted = isLastPage,
+                )
+            }
+
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    reverseLayout = true, // RTL reading
+                    modifier = Modifier.fillMaxSize(),
+                ) { pageIndex ->
+                    val model =
+                        imageLoader.resolvePageModel(
+                            arc = arc,
+                            chapterNumber = chapterNumber,
+                            pageIndex = pageIndex,
+                            remoteUrl = pages[pageIndex].imageUrl,
+                        )
+
+                    ZoomablePageImage(
+                        model = model,
+                    )
+                }
+
+                val currentPageLabel = (pagerState.currentPage + 1).toString().padStart(3, '0')
+                val totalLabel = pages.size.toString().padStart(3, '0')
+
+                Text(
+                    text = "$currentPageLabel / $totalLabel",
+                    color = Color.White.copy(alpha = 0.75f),
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp),
+                )
+
+                IconButton(
+                    onClick = onBack,
+                    modifier =
+                        Modifier
+                            .padding(12.dp)
+                            .align(Alignment.TopStart),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "رجوع",
+                        tint = Color.White,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ZoomablePageImage(
+    model: Any,
+) {
+    val context = LocalContext.current
+
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
+
+    fun clampPanOffset(
+        inOffset: Offset,
+        inScale: Float,
+        container: IntSize,
+    ): Offset {
+        if (container == IntSize.Zero || inScale <= 1f) return Offset.Zero
+
+        val maxTranslationX = (container.width * (inScale - 1f)) / 2f
+        val maxTranslationY = (container.height * (inScale - 1f)) / 2f
+
+        return Offset(
+            x = inOffset.x.coerceIn(-maxTranslationX, maxTranslationX),
+            y = inOffset.y.coerceIn(-maxTranslationY, maxTranslationY),
+        )
+    }
+
+    // Pass-through gesture strategy (Tachiyomi-style):
+    // - Pinch (2 fingers): zoom immediately (consume)
+    // - Drag (1 finger) while scale > 1f: pan (consume)
+    // - Drag (1 finger) while scale == 1f: DO NOT consume horizontal drags so HorizontalPager can swipe
+    //   (we only consume when we're actually zooming/panning)
+    val gestureModifier =
+        Modifier
+            .fillMaxSize()
+            .onSizeChanged { containerSize = it }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    // Track per-gesture deltas and decide if we should "own" the gesture.
+                    var gestureOwns = false
+
+                    while (true) {
+                        // Read changes without consuming by default.
+                        val event = awaitPointerEvent(pass = PointerEventPass.Main)
+                        val changes = event.changes
+
+                        if (changes.isEmpty()) break
+
+                        val pressedCount = changes.count { it.pressed }
+
+                        // If all pointers are up, gesture ended.
+                        if (pressedCount == 0) break
+
+                        val zoom = event.calculateZoom()
+                        val pan = event.calculatePan()
+
+                        val centroidMovedHorizontally =
+                            abs(pan.x) > abs(pan.y) && abs(pan.x) > 0.5f
+
+                        val isPinch = pressedCount > 1 && zoom != 1f
+                        val isZoomed = scale > 1f
+
+                        // Golden rule + horizontal priority:
+                        // - At base scale, single pointer, horizontal movement => let pager have it (never consume)
+                        // - If pinch OR already zoomed => we own it and consume
+                        if (!gestureOwns) {
+                            gestureOwns =
+                                isPinch || isZoomed || (pressedCount > 1) || (scale == 1f && !centroidMovedHorizontally && zoom != 1f)
+                        }
+
+                        if (!gestureOwns && scale == 1f && pressedCount == 1 && centroidMovedHorizontally) {
+                            // Pass-through: do not consume, do not update state.
+                            continue
+                        }
+
+                        // If we got here, we are handling zoom/pan => consume.
+                        if (gestureOwns) {
+                            changes.forEach { it.consumePositionChange() }
+                        }
+
+                        // Apply zoom immediately (pinch).
+                        val newScale = (scale * zoom).coerceIn(1f, 3f)
+                        scale = newScale
+
+                        // Apply pan only when zoomed.
+                        offset =
+                            if (newScale <= 1f) {
+                                Offset.Zero
+                            } else {
+                                clampPanOffset(offset + pan, newScale, containerSize)
+                            }
+                    }
+                }
+            }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationX = offset.x
+                translationY = offset.y
+            }
+
+    val mangaImageLoader = remember(context.applicationContext) { MangaCoil.imageLoader(context.applicationContext) }
+
+    AsyncImage(
+        model =
+            ImageRequest.Builder(context)
+                .data(model)
+                .crossfade(true)
+                .build(),
+        imageLoader = mangaImageLoader,
+        contentDescription = null,
+        modifier = gestureModifier,
+    )
+}
