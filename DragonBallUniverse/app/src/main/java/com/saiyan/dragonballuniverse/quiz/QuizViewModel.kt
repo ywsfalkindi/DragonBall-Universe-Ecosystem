@@ -8,9 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.saiyan.dragonballuniverse.db.UserDatabase
 import com.saiyan.dragonballuniverse.db.UserStatsDao
 import com.saiyan.dragonballuniverse.db.UserStatsEntity
-import com.saiyan.dragonballuniverse.network.PocketBaseClient
-import com.saiyan.dragonballuniverse.network.PocketBaseUpsertUserStatsBody
-import com.saiyan.dragonballuniverse.network.PocketBaseUserStatsRecord
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -41,7 +38,10 @@ data class QuizSessionState(
     val isLastQuestion: Boolean get() = currentIndex >= questions.lastIndex
 }
 
-class QuizViewModel(application: Application) : AndroidViewModel(application) {
+class QuizViewModel(
+    application: Application,
+    private val repository: QuizRepository = QuizRepository(),
+) : AndroidViewModel(application) {
 
     private val dao: UserStatsDao =
         UserDatabase.getInstance(application.applicationContext).userStatsDao()
@@ -79,16 +79,8 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
      */
     private suspend fun syncStatsFromPocketBase() {
         val did = deviceId()
-        val filter = """device_id="${did}""""
+        val record = repository.syncStatsFromPocketBase(did)
 
-        val resp =
-            PocketBaseClient.apiService.listUserStats(
-                filter = filter,
-                page = 1,
-                perPage = 1,
-            )
-
-        val record: PocketBaseUserStatsRecord? = resp.items.firstOrNull()
         if (record != null) {
             val merged =
                 _stats.value.copy(
@@ -110,34 +102,13 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
      */
     private suspend fun pushStatsToPocketBase() {
         val did = deviceId()
-        val filter = """device_id="${did}""""
-
-        val existing =
-            PocketBaseClient.apiService
-                .listUserStats(
-                    filter = filter,
-                    page = 1,
-                    perPage = 1,
-                )
-                .items
-                .firstOrNull()
-
-        val body =
-            PocketBaseUpsertUserStatsBody(
-                deviceId = did,
-                powerLevel = _stats.value.powerLevel,
-                senzuBeans = _stats.value.senzuBeans,
-                highestStreak = _stats.value.highestStreak,
-                lastPlayedTimestamp = _stats.value.lastPlayedTimestamp,
-            )
-
-        if (existing == null) {
-            PocketBaseClient.apiService.createUserStats(body)
-            Log.d("PB_DEBUG", "Quiz: created user_stats for device_id=$did")
-        } else {
-            PocketBaseClient.apiService.updateUserStats(existing.id, body)
-            Log.d("PB_DEBUG", "Quiz: updated user_stats id=${existing.id} for device_id=$did")
-        }
+        repository.pushStatsToPocketBase(
+            deviceId = did,
+            powerLevel = _stats.value.powerLevel,
+            senzuBeans = _stats.value.senzuBeans,
+            highestStreak = _stats.value.highestStreak,
+            lastPlayedTimestamp = _stats.value.lastPlayedTimestamp,
+        )
     }
 
     fun backToHome() {
@@ -196,7 +167,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 val pbQuestions =
-                    PocketBaseClient.apiService
+                    repository
                         .listQuizQuestions(
                             page = 1,
                             perPage = 200,

@@ -19,19 +19,26 @@ function formatAnswers(value: unknown) {
   return "—";
 }
 
-export default async function QuizzesPage() {
+export default async function QuizzesPage({
+  searchParams,
+}: {
+  searchParams?: { page?: string };
+}) {
   const pb = await getServerAdminPb();
 
   let rows: QuizQuestion[] = [];
   let error: string | null = null;
 
+  const page = Math.max(1, Number(searchParams?.page ?? "1") || 1);
+
   try {
-    const res = await pb.collection("quiz_questions").getList(1, 50, {
+    const res = await pb.collection("quiz_questions").getList(page, 50, {
       sort: "-created",
     });
 
     rows = res.items as unknown as QuizQuestion[];
-  } catch {
+  } catch (err) {
+    console.error(err);
     error = "Failed to load quiz_questions from PocketBase.";
   }
 

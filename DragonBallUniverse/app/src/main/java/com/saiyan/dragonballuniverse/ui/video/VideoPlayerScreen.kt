@@ -15,6 +15,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,21 +105,36 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Save watch progress silently each 5 seconds
-    //
-    // Note: `saveWatchProgress` should be IO-backed (Room/DataStore). Ensure callers perform IO.
-    DisposableEffect(player, episodeId) {
-        val job =
-            kotlinx.coroutines.CoroutineScope(Dispatchers.Default).launch {
-                while (true) {
-                    delay(5000)
-                    saveWatchProgress(episodeId, player.currentPosition)
+    // Save watch progress on player state changes (pause/buffer/idle/end)
+    // and also safely on dispose (leaving screen / switching episode).
+    val lastSavedPositionMs = remember(episodeId) { mutableLongStateOf(-1L) }
+    DisposableEffect(player, episodeId, saveWatchProgress) {
+        fun saveIfChanged() {
+            val pos = player.currentPosition
+            if (pos != lastSavedPositionMs.longValue) {
+                lastSavedPositionMs.longValue = pos
+                saveWatchProgress(episodeId, pos)
+            }
+        }
+
+        val listener =
+            object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    // Save when playback transitions to paused/stopped.
+                    if (!isPlaying) saveIfChanged()
+                }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    // Save on state transitions that often occur during user interactions
+                    // (pausing, leaving app, playback ended, etc.)
+                    if (playbackState != Player.STATE_READY) saveIfChanged()
                 }
             }
 
+        player.addListener(listener)
         onDispose {
-            job.cancel()
-            saveWatchProgress(episodeId, player.currentPosition)
+            player.removeListener(listener)
+            saveIfChanged()
         }
     }
 

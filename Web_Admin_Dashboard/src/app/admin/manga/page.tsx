@@ -11,19 +11,26 @@ type MangaChapter = {
 
 export const dynamic = "force-dynamic";
 
-export default async function MangaPage() {
+export default async function MangaPage({
+  searchParams,
+}: {
+  searchParams?: { page?: string };
+}) {
   const pb = await getServerAdminPb();
 
   let rows: MangaChapter[] = [];
   let error: string | null = null;
 
+  const page = Math.max(1, Number(searchParams?.page ?? "1") || 1);
+
   try {
-    const res = await pb.collection("manga_chapters").getList(1, 50, {
+    const res = await pb.collection("manga_chapters").getList(page, 50, {
       sort: "-created",
     });
 
     rows = res.items as unknown as MangaChapter[];
-  } catch {
+  } catch (err) {
+    console.error(err);
     error = "Failed to load manga_chapters from PocketBase.";
   }
 

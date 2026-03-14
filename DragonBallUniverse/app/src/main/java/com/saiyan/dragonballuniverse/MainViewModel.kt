@@ -8,6 +8,8 @@ import com.saiyan.dragonballuniverse.db.UserDatabase
 import com.saiyan.dragonballuniverse.db.UserEpisodeEntity
 import com.saiyan.dragonballuniverse.network.ApiEpisode
 import com.saiyan.dragonballuniverse.network.JikanRetrofitClient
+import com.saiyan.dragonballuniverse.ui.anime.DEFAULT_DBZ_COVER_URL
+import com.saiyan.dragonballuniverse.ui.anime.Episode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

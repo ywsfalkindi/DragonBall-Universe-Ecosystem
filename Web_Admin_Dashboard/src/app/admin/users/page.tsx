@@ -11,17 +11,24 @@ type UserStats = {
 
 export const dynamic = "force-dynamic";
 
-export default async function UsersPage() {
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams?: { page?: string };
+}) {
   let rows: UserStats[] = [];
   let error: string | null = null;
 
+  const page = Math.max(1, Number(searchParams?.page ?? "1") || 1);
+
   try {
-    const res = await getAdminListCached<UserStats>("user_stats", 1, 50, {
+    const res = await getAdminListCached<UserStats>("user_stats", page, 50, {
       sort: "-created",
     });
 
     rows = res.items as unknown as UserStats[];
-  } catch {
+  } catch (err) {
+    console.error(err);
     error = "Failed to load user_stats from PocketBase.";
   }
 
