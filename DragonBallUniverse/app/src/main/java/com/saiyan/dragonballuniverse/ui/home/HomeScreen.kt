@@ -310,12 +310,21 @@ private fun DragonBallHomeContent(
         }
 
     if (selectedVideoUrl != null && selectedEpisodeId != null) {
+        val episodeIdSafe = selectedEpisodeId ?: run {
+            selectedVideoUrl = null
+            return
+        }
+        val videoUrlSafe = selectedVideoUrl ?: run {
+            selectedEpisodeId = null
+            return
+        }
+
         val sampleUrlSnapshot =
             "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
 
         VideoPlayerScreen(
-            episodeId = selectedEpisodeId!!,
-            videoUrl = selectedVideoUrl!!,
+            episodeId = episodeIdSafe,
+            videoUrl = videoUrlSafe,
             onPlayNext = { currentId, _ ->
                 val currentIndex = episodes.indexOfFirst { it.id == currentId }
                 val next = episodes.getOrNull(currentIndex + 1) ?: return@VideoPlayerScreen
@@ -337,9 +346,18 @@ private fun DragonBallHomeContent(
     }
 
     if (selectedMangaArc != null && selectedMangaChapterNumber != null) {
+        val arcSafe = selectedMangaArc ?: run {
+            selectedMangaChapterNumber = null
+            return
+        }
+        val chapterSafe = selectedMangaChapterNumber ?: run {
+            selectedMangaArc = null
+            return
+        }
+
         MangaChapterReaderScreen(
-            arc = selectedMangaArc!!,
-            chapterNumber = selectedMangaChapterNumber!!,
+            arc = arcSafe,
+            chapterNumber = chapterSafe,
             onBack = {
                 selectedMangaArc = null
                 selectedMangaChapterNumber = null
@@ -416,22 +434,27 @@ private fun DragonBallHomeContent(
                             modifier = modifier
                         )
                     } else {
-                        SeasonDetailsScreen(
-                            season = selectedSeason!!,
-                            onBack = { selectedSeason = null },
-                            onEpisodeClick = { ep ->
-                                selectedEpisodeId = ep.id
-                                selectedVideoUrl = sampleUrl
-                            },
-                            modifier = modifier,
-                            isFavorite = { episodeId ->
-                                // No @Composable calls here; this is consumed inside the Lazy list item scope.
-                                viewModel.isFavoriteState(episodeId).value
-                            },
-                            onToggleFavorite = { episodeId, isFav ->
-                                viewModel.toggleFavorite(episodeId, isFav)
-                            }
-                        )
+                        val seasonSafe = selectedSeason
+                        if (seasonSafe == null) {
+                            selectedSeason = null
+                        } else {
+                            SeasonDetailsScreen(
+                                season = seasonSafe,
+                                onBack = { selectedSeason = null },
+                                onEpisodeClick = { ep ->
+                                    selectedEpisodeId = ep.id
+                                    selectedVideoUrl = sampleUrl
+                                },
+                                modifier = modifier,
+                                isFavorite = { episodeId ->
+                                    // No @Composable calls here; this is consumed inside the Lazy list item scope.
+                                    viewModel.isFavoriteState(episodeId).value
+                                },
+                                onToggleFavorite = { episodeId, isFav ->
+                                    viewModel.toggleFavorite(episodeId, isFav)
+                                }
+                            )
+                        }
                     }
                 }
             }

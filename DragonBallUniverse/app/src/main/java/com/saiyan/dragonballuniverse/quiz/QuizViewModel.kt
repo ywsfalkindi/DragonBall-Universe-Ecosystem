@@ -56,6 +56,7 @@ class QuizViewModel(
     val session: StateFlow<QuizSessionState?> = _session.asStateFlow()
 
     init {
+        Log.d("APP_DEBUG", "Checkpoint 5: QuizViewModel initialized")
         viewModelScope.launch {
             loadOrCreateStats()
         }
@@ -191,8 +192,8 @@ class QuizViewModel(
                                 ?: emptyList()
 
                         val normalizedDifficulty =
-                            when (r.difficulty?.trim()) {
-                                DIFF_EASY, DIFF_MEDIUM, DIFF_HARD, DIFF_INSANE -> r.difficulty!!.trim()
+                            when (val d = r.difficulty?.trim()) {
+                                DIFF_EASY, DIFF_MEDIUM, DIFF_HARD, DIFF_INSANE -> d
                                 else -> DIFF_EASY
                             }
 
@@ -213,6 +214,11 @@ class QuizViewModel(
                         val src = pbQuestions.getOrNull(q.id - 1)
                         val published = src?.isPublished ?: true
                         published && q.options.size >= 2
+                    }
+                    // Defensive: in case future mapping changes accidentally produce invalid indices
+                    .map { q ->
+                        if (q.options.isEmpty()) q
+                        else q.copy(correctAnswerIndex = q.correctAnswerIndex.coerceIn(0, q.options.lastIndex))
                     }
 
                 val sourceQuestions = if (mapped.isNotEmpty()) mapped else dummyQuestions

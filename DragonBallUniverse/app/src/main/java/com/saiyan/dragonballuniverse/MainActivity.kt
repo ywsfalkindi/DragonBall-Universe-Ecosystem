@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -32,6 +33,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("APP_DEBUG", "Checkpoint 1: MainActivity onCreate started")
         enableEdgeToEdge()
         // DEBUG-ONLY: Make Coil trust self-signed/untrusted TLS for Manga page images.
         //
@@ -40,17 +42,20 @@ class MainActivity : ComponentActivity() {
         //
         // Manga screens should use a dedicated Coil ImageLoader / OkHttp client instead.
         //
-        // Keeping this block intentionally disabled for now:
-        // if (BuildConfig.DEBUG) { ... }
-        if (false && BuildConfig.DEBUG) {
-            val imageLoader =
-                ImageLoader.Builder(applicationContext)
-                    .okHttpClient(UnsafeOkHttp.create())
-                    .build()
-            Coil.setImageLoader(imageLoader)
-        }
+        // DEBUG-ONLY: Optional helper to make Coil trust self-signed/untrusted TLS for Manga page images.
+        // Keeping this disabled by default; enable ONLY when needed for local/dev servers.
+        //
+        // if (BuildConfig.DEBUG) {
+        //     val imageLoader =
+        //         ImageLoader.Builder(applicationContext)
+        //             .okHttpClient(UnsafeOkHttp.create())
+        //             .build()
+        //     Coil.setImageLoader(imageLoader)
+        // }
 
+        Log.d("APP_DEBUG", "Checkpoint 2: About to call setContent")
         setContent {
+            Log.d("APP_DEBUG", "Checkpoint 3: Inside setContent")
             // Android 13+ requires runtime notification permission.
             val notificationPermissionLauncher =
                 rememberLauncherForActivityResult(
@@ -75,6 +80,7 @@ class MainActivity : ComponentActivity() {
             }
 
             DragonBallUniverseTheme {
+                Log.d("APP_DEBUG", "Checkpoint 4: Calling DragonBallScaffold")
                 DragonBallScaffold(
                     viewModel = mainViewModel,
                     quizViewModel = quizViewModel,
